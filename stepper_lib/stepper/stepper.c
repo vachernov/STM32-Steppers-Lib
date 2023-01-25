@@ -1,7 +1,7 @@
 /*
  * stepper.c
  *
- *      Author: Valerii Chernov
+ *      Author: Valerii
  */
 
 #include "main.h"
@@ -47,6 +47,8 @@ StepperState stepperInit(GpioPin STEP_Pin, GpioPin DIR_Pin, GpioPin EN_Pin){
 	motor.steps = 0;
 	motor.angle = 0;
 	motor.home = 0;
+	motor.limit_min = STEPPER_DEFAULT_LIM_MIN;
+	motor.limit_max = STEPPER_DEFAULT_LIM_MAX;
 	motor.goal = 0;
 	motor.v_goal = 0;
 	motor.ticks = 0;
@@ -141,13 +143,37 @@ void setHome(StepperState* motor, int32_t position){ // steps
     motor -> home = position;
 }
 
+void calculateHome(StepperState* motor){
+    motor -> home = ((motor -> limit_min)/2) + ((motor -> limit_max)/2);
+}
+
+void setMinLimit(StepperState* motor, int32_t minSteps){ // steps
+    motor -> limit_min = minSteps;
+}
+
+void setMaxLimit(StepperState* motor, int32_t maxSteps){ // steps
+    motor -> limit_max = maxSteps;
+}
+
+void saveMinLimit(StepperState* motor){
+	 motor -> limit_min = motor -> steps;
+}
+
+void saveMaxLimit(StepperState* motor){
+	 motor -> limit_max = motor -> steps;
+}
+
 void setGoal(StepperState* motor, int32_t position){ // steps
 	setDir(motor, (position > (motor -> steps)) ? 1 : -1);
     motor -> goal = position;
 }
 
-void setGoalRel(StepperState* motor, int32_t delta)
-{
+void setGoalRel(StepperState* motor, int32_t delta){
     setDir(motor, delta < 0 ? -1 : 1);
     motor -> goal = (motor -> steps) + delta;
 }
+
+int32_t getGoalErr(StepperState* motor){
+    return ( (motor -> goal) - (motor -> steps) );
+}
+

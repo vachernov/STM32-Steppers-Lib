@@ -1,7 +1,7 @@
 /*
  * config.c
  *
- *      Author: Valerii Chernov
+ *      Author: Valerii
  */
 
 #include "config.h"

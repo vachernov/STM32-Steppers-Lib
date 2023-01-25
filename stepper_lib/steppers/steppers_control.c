@@ -1,7 +1,7 @@
 /*
  * steppers_control.c
  *
- *      Author: Valerii Chernov
+ *      Author: Valerii
  */
 
 #include "main.h"
@@ -12,11 +12,17 @@ StepperState *steppers_ptr[STEPPER_UNITS];
 
 StepperState* MotorPointer;
 
-void addStepperPointer(StepperState* motor, int index){
-	steppers_ptr[index] = motor;
+void addStepperPointer(StepperState* motor, uint8_t index){
+	steppers_ptr[index] = motor; // may be  ptr[i] = &var[i];
 	motor -> id = index;
 
 	MotorPointer = motor;
+	// usage:
+	// printf("Value of var[%d] = %d\n", i, *ptr[i] );
+}
+
+StepperState* getStepperPointer(uint8_t index){
+	return steppers_ptr[index];
 }
 
 void steppersInitTimer(TIM_HandleTypeDef* TMR_Handle){
@@ -68,11 +74,11 @@ void steppersSpeedControl(StepperState* motor, float speed){
 	motor -> status = VELOCITY_CONTROL;
 }
 
+void steppersSetIdle(StepperState* motor){
+	motor -> status = IDLE;
+}
+
 void updateKinematicsParams(StepperState* motor){
-
-//	(motor -> v_cur)
-//	(motor -> v_max)
-
 	int32_t err = (motor -> goal) - (motor -> steps);
 	uint8_t status = motor -> status;
 
@@ -101,7 +107,7 @@ void updateKinematicsParams(StepperState* motor){
 	}
 }
 
-void stepperTimerOverflowISR(TIM_HandleTypeDef* htim){
+void steppersTimerOverflowISR(TIM_HandleTypeDef* htim){
 	uint8_t i = 0;
 
 	if(htim -> Instance == STEPPER_TIMER){
@@ -126,6 +132,5 @@ void stepperTimerOverflowISR(TIM_HandleTypeDef* htim){
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){
-
-	stepperTimerOverflowISR(htim);
+	steppersTimerOverflowISR(htim);
 }

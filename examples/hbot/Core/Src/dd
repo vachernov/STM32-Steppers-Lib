@@ -1,0 +1,165 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2023 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+
+#include "stepper_lib/config.h"
+#include "stepper_lib/stepper/stepper.h"
+#include "stepper_lib/steppers/steppers_control.h"
+
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim2;
+
+UART_HandleTypeDef huart2;
+
+/* USER CODE BEGIN PV */
+
+#ifdef __GNUC__
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif
+
+PUTCHAR_PROTOTYPE
+{
+  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+  return ch;
+}
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_USART2_UART_Init(void);
+static void MX_TIM2_Init(void);
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_USART2_UART_Init();
+//  MX_TIM2_Init();
+  /* USER CODE BEGIN 2 */
+
+  printf("Hello World !!!\r\n", 5, 10);
+
+  HAL_Delay(50);
+
+  GpioPin STEP_A;
+  createGpioPin(&STEP_A, M1_STEP_GPIO_Port, M1_STEP_Pin);
+
+  GpioPin DIR_A;
+  createGpioPin(&DIR_A, M1_DIR_GPIO_Port, M1_DIR_Pin);
+  GpioPin EN_A;
+  createGpioPin(&EN_A, M1_ENABLE_GPIO_Port, M1_ENABLE_Pin);
+  StepperState MotorA = stepperInit(STEP_A, DIR_A, EN_A);
+
+  HAL_Delay(250);
+
+  addStepperPointer(MotorA, 0);
+
+  steppersSetSpeed(&MotorA, 40);
+
+  HAL_Delay(250);
+
+  steppersInitTimer(&htim2);
+
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+    /* USER CODE END WHILE */
+
+	  /* single motor */
+
+//	  doStep(&MotorA);
+//	  HAL_Delay(250);
+//
+//	  releaseStep(&MotorA);
+//
+//	  printf("Current steps: %ld | Goal: %ld \r\n", MotorA.steps, MotorA.goal);
+//
+//	  HAL_Delay(250);
+
+	  /* steppers */
+
+	  HAL_Delay(250);
+
+	  printf( "Compare %lu \r\n", __HAL_TIM_GET_COUNTER(&htim2) );
+
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+}

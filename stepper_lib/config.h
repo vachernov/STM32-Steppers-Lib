@@ -1,7 +1,7 @@
 /*
  * config.h
  *
- *      Author: Valerii Chernov
+ *      Author: Valerii
  */
 
 #ifndef SRC_STEPPER_LIB_CONFIG_H_
@@ -15,6 +15,9 @@
 #define STEPPER_DEFAULT_RES  1.8
 #define STEPPER_DEFAULT_V_M  0.225
 #define STEPPER_DEFAULT_A_M  10
+
+#define STEPPER_DEFAULT_LIM_MIN -10000
+#define STEPPER_DEFAULT_LIM_MAX  10000
 
 #define STEPPER_UNITS 1
 
@@ -35,8 +38,6 @@ typedef struct{
 }StepperConfig;
 
 const StepperConfig SetupConfig[STEPPER_UNITS];
-
-/* prototypes for all functions  */
 
 void createGpioPin(GpioPin* temp, GPIO_TypeDef* port, uint16_t pin);
 
