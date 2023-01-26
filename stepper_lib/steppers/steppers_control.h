@@ -10,11 +10,21 @@
 #include "../config.h"
 #include "../stepper/stepper.h"
 
-/* prototypes for all functions  */
+/* Prototypes For All Functions  */
+
+void addStepperPointer(StepperState* motor, uint8_t index);
+StepperState* getStepperPointer(uint8_t index);
+
+void steppersSetSpeed(StepperState* motor, int16_t speed_in_steps_per_sec);
+void steppersSetPosition(StepperState* motor, int32_t position);
+void steppersSpeedControl(StepperState* motor, int16_t speed_in_steps_per_sec);
+
+void steppersSetIdle(StepperState* motor);
+
+void updateKinematicsParams(StepperState* motor);
 
 void steppersInitTimer(TIM_HandleTypeDef* TMR_Handle);
-void steppersSetSpeed(StepperState* motor, float speed);
-void stepperTimerOverflowISR(TIM_HandleTypeDef* htim);
+void steppersTimerOverflowISR(TIM_HandleTypeDef* htim);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim);
 
 #endif /* SRC_STEPPER_LIB_STEPPERS_STEPPERS_CONTROL_H_ */

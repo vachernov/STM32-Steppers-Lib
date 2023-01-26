@@ -9,19 +9,24 @@
 
 #include "stm32f4xx.h"
 
-#define STEPPER_SPEED_TOLERANCE     3.5
+#define STEPPER_SPEED_TOLERANCE     5
 #define STEPPER_POSITION_TOLERANCE  2
 
 #define STEPPER_DEFAULT_RES  1.8
-#define STEPPER_DEFAULT_V_M  0.225
-#define STEPPER_DEFAULT_A_M  10
+#define STEPPER_DEFAULT_V_M  500    // steps/sec
+#define STEPPER_DEFAULT_A_M   40    // steps/sec^2
+
+#define STEPPER_DEFAULT_LIM_MIN -10000
+#define STEPPER_DEFAULT_LIM_MAX  10000
 
 #define STEPPER_UNITS 1
 
 // Stepper Timer Base Options
 #define STEPPER_TIMER      TIM2
-#define STEPPER_TIMER_CLK  84
-#define STEPPER_TIME_BASE  1
+//                       GMMMKKKIII
+#define STEPPER_TIMER_CLK  84000000 //
+#define STEPPER_TIMER_PSC       200 //
+#define STEPPER_TIMER_FREQ    20000 //
 
 typedef struct{
     GPIO_TypeDef* port;
@@ -35,8 +40,6 @@ typedef struct{
 }StepperConfig;
 
 const StepperConfig SetupConfig[STEPPER_UNITS];
-
-/* prototypes for all functions  */
 
 void createGpioPin(GpioPin* temp, GPIO_TypeDef* port, uint16_t pin);
 

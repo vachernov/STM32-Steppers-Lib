@@ -47,6 +47,8 @@ StepperState stepperInit(GpioPin STEP_Pin, GpioPin DIR_Pin, GpioPin EN_Pin){
 	motor.steps = 0;
 	motor.angle = 0;
 	motor.home = 0;
+	motor.limit_min = STEPPER_DEFAULT_LIM_MIN;
+	motor.limit_max = STEPPER_DEFAULT_LIM_MAX;
 	motor.goal = 0;
 	motor.v_goal = 0;
 	motor.ticks = 0;
@@ -90,7 +92,7 @@ void setDir(StepperState* motor, int8_t d){
 
 void setVel(StepperState* motor, float velocity){
 	if ( abs(velocity) < (motor -> v_max) ){
-		motor -> v_goal = velocity;
+		motor -> v_goal = abs(velocity);
 	}else{
 		motor -> v_goal = motor -> v_max;
 	}
@@ -117,7 +119,7 @@ void updateStep2Sec(StepperState* motor){
 }
 
 // usage: limitAcceleration(&motor_A, 100);
-void limitAcceleration(StepperState* motor, uint32_t a){ // steps/s^2
+void limitAcceleration(StepperState* motor, float a){ // steps/s^2
 	if (a > 0){
 		motor -> a_max = a;
 		setAcc(motor, a);
@@ -125,7 +127,7 @@ void limitAcceleration(StepperState* motor, uint32_t a){ // steps/s^2
 	}
 }
 
-void limitSpeed(StepperState* motor, uint32_t v){ // steps/s
+void limitSpeed(StepperState* motor, float v){ // steps/s
 	if (v > 0){
 		motor -> v_max = v;
 		setVel(motor, v);
@@ -141,13 +143,37 @@ void setHome(StepperState* motor, int32_t position){ // steps
     motor -> home = position;
 }
 
+void calculateHome(StepperState* motor){
+    motor -> home = ((motor -> limit_min)/2) + ((motor -> limit_max)/2);
+}
+
+void setMinLimit(StepperState* motor, int32_t minSteps){ // steps
+    motor -> limit_min = minSteps;
+}
+
+void setMaxLimit(StepperState* motor, int32_t maxSteps){ // steps
+    motor -> limit_max = maxSteps;
+}
+
+void saveMinLimit(StepperState* motor){
+	 motor -> limit_min = motor -> steps;
+}
+
+void saveMaxLimit(StepperState* motor){
+	 motor -> limit_max = motor -> steps;
+}
+
 void setGoal(StepperState* motor, int32_t position){ // steps
 	setDir(motor, (position > (motor -> steps)) ? 1 : -1);
     motor -> goal = position;
 }
 
-void setGoalRel(StepperState* motor, int32_t delta)
-{
+void setGoalRel(StepperState* motor, int32_t delta){
     setDir(motor, delta < 0 ? -1 : 1);
     motor -> goal = (motor -> steps) + delta;
 }
+
+int32_t getGoalErr(StepperState* motor){
+    return ( (motor -> goal) - (motor -> steps) );
+}
+

@@ -7,7 +7,13 @@ C Library for driving multiple steppers
 
 `stepper` – implements single stepper workflow based on identity structure `StepperState`
 
-`steppers_control` – implements synchronous control of steppers via timer   
+`steppers_control` – implements synchronous control of steppers via timer  
+
+## Flow
+
+After major fix in control method, acceleration prosses works propertly (see pic bellow, where LED denotes TIM2 interrupt).
+
+![Acceleration procces](img/acceleration.png "Acceleration procces") 
 
 ## ToDo
 - [ ] Check transformation conftants

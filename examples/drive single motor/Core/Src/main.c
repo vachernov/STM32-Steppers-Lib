@@ -20,17 +20,40 @@
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
 
 #include "stepper_lib/config.h"
 #include "stepper_lib/stepper/stepper.h"
+//#include "stepper_lib/utils/hbot.h"
+#include "stepper_lib/steppers/steppers_control.h"
+
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim2;
+
 UART_HandleTypeDef huart2;
 
+/* USER CODE BEGIN PV */
+
 #ifdef __GNUC__
-  #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 #else
-  #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
 #endif
 
 PUTCHAR_PROTOTYPE
@@ -39,56 +62,111 @@ PUTCHAR_PROTOTYPE
   return ch;
 }
 
+/* USER CODE END PV */
+
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_TIM2_Init(void);
+/* USER CODE BEGIN PFP */
 
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
 int main(void)
 {
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
   /* Configure the system clock */
   SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
+  //MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
   printf("Hello World !!!\r\n", 5, 10);
 
   HAL_Delay(50);
 
-  // create fancy PIN-PORT pairs 
+  // create pins and initialize each stepper
+
   GpioPin STEP_A;
   createGpioPin(&STEP_A, M1_STEP_GPIO_Port, M1_STEP_Pin);
   GpioPin DIR_A;
   createGpioPin(&DIR_A, M1_DIR_GPIO_Port, M1_DIR_Pin);
   GpioPin EN_A;
   createGpioPin(&EN_A, M1_ENABLE_GPIO_Port, M1_ENABLE_Pin);
-
-  // init motor A with those pins 
   StepperState MotorA = stepperInit(STEP_A, DIR_A, EN_A);
 
+  addStepperPointer(&MotorA, 0);
+
   HAL_Delay(250);
+
+  steppersInitTimer(&htim2);
+
+  HAL_Delay(250);
+
+  // ===== CASE A: SPEED CONTROL ======
+//  steppersSetSpeed(&MotorA, 300);
+//  steppersSpeedControl(&MotorA, 300);
+
+  //  ===== CASE B: POSITION CONTROL ======
+    steppersSetSpeed(&MotorA, 300);
+  steppersPositionControl(&MotorA, 500);
+
+  HAL_Delay(50);
+
+
+
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
   while (1)
    {
- 	  /* single motor */
+     /* USER CODE END WHILE */
+	  /* USER CODE BEGIN 3 */
 
- 	  doStep(&MotorA);
- 	  HAL_Delay(250);
- 
- 	  releaseStep(&MotorA);
- 
- 	  printf(" Status: %d | Current steps: %ld | Goal: %ld | Dir: %d \r\n", MotorA.status, MotorA.steps, MotorA.goal, MotorA.dir);
- 
- 	  HAL_Delay(250);
+//	  // ===== CASE A: SPEED CONTROL ======
+//	  int32_t err = ((&MotorA) -> v_cur) - ((&MotorA) -> v_goal);
+//	  printf(" position : %d | target speed (steps/mm) : %f | tiks : %d | v_cur : %f | err: %ld | status: %d \r\n",
+//			  (&MotorA) -> steps, (&MotorA) -> v_goal, (&MotorA) -> ticks_max, (&MotorA) -> v_cur, err, (&MotorA) -> status);
+
+	  //  ===== CASE B: POSITION CONTROL ======
+	  int32_t err = ((&MotorA) -> steps) - ((&MotorA) -> goal);
+	  printf(" position : %d | target speed (steps/mm) : %f | tiks : %d | v_cur : %f | a_cur : %f | err: %ld | status: %d \r\n",
+			  (&MotorA) -> steps, (&MotorA) -> v_goal, (&MotorA) -> ticks_max, (&MotorA) -> v_cur, (&MotorA) -> a_cur, err, (&MotorA) -> status);
+
+ 	  HAL_Delay(25);
 
    }
+  /* USER CODE END 3 */
 }
 
 /**
@@ -133,6 +211,51 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+//
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+//
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 2;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 4;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+//
+  /* USER CODE END TIM2_Init 2 */
+
 }
 
 /**
@@ -201,6 +324,20 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
+
+//  /*Configure GPIO pins : M1_ENABLE_Pin M1_STEP_Pin */
+//  GPIO_InitStruct.Pin = M1_ENABLE_Pin|M1_STEP_Pin;
+//  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+//  GPIO_InitStruct.Pull = GPIO_NOPULL;
+//  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+//  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+//
+//  /*Configure GPIO pin : M1_DIR_Pin */
+//  GPIO_InitStruct.Pin = M1_DIR_Pin;
+//  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+//  GPIO_InitStruct.Pull = GPIO_NOPULL;
+//  HAL_GPIO_Init(M1_DIR_GPIO_Port, &GPIO_InitStruct);
+
 }
 
 /* USER CODE BEGIN 4 */
