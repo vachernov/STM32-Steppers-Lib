@@ -32,7 +32,7 @@ StepperState* getStepperPointer(uint8_t index){
  *            PSC = Prescaler - 16 bit ( 0 ... 65535 )
  *            ARR = Auto Reload Register - 16 bit ( 0 ... 65535 )
  */
-void steppersInitTimer(TIM_HandleTypeDef* TMR_Handle){
+void steppersInitSignalTimer(TIM_HandleTypeDef* TMR_Handle){
 	TIM_ClockConfigTypeDef  sClockSourceConfig = {0};
     TIM_MasterConfigTypeDef sMasterConfig = {0};
 
@@ -59,16 +59,38 @@ void steppersInitTimer(TIM_HandleTypeDef* TMR_Handle){
 	HAL_TIM_Base_Start_IT(TMR_Handle);
 }
 
-void steppersSetSpeed(StepperState* motor, int16_t speed_in_steps_per_sec){
+void steppersSetSpeed(StepperState* motor, float speed_in_steps_per_sec){
 	//limitSpeed(motor, speed);
-	setVel(motor, speed_in_steps_per_sec);
+	setGoalVel(motor, speed_in_steps_per_sec);
 
-	uint32_t Total_Steps = (360. / (motor -> resolution));
+//	uint32_t Total_Steps = (360. / (motor -> resolution));
 
-	motor -> ticks_max = STEPPER_TIMER_FREQ / (2*(motor -> v_goal)); // dive by 2 !
-	motor -> step2sec = 1.0/speed_in_steps_per_sec;
+//	if (abs(speed_in_steps_per_sec) > STEPPER_SPEED_TOLERANCE){
+//		motor -> ticks_max = STEPPER_TIMER_FREQ / (2*(motor -> v_goal)); // dive by 2 !
+//		motor -> step2sec = 1.0/speed_in_steps_per_sec;
+//	}else{
+//		motor -> ticks_max = STEPPER_TIMER_FREQ / (2*STEPPER_SPEED_TOLERANCE); // dive by 2 !
+//		motor -> step2sec = 1.0/STEPPER_SPEED_TOLERANCE;
+//	}
+
+	if (abs(motor -> v_cur) < STEPPER_SPEED_TOLERANCE){
+		motor -> ticks_max = STEPPER_TIMER_FREQ / (2*STEPPER_SPEED_TOLERANCE); // dive by 2 !
+		motor -> step2sec = 1.0/STEPPER_SPEED_TOLERANCE;
+	}
 
 //	printf("... per 2pi: %lu | max: %lu ", Total_Steps, (motor -> ticks_max));
+}
+
+void steppersUpdateSpeed(StepperState* motor, float speed_in_steps_per_sec){
+	setCurVel(motor, speed_in_steps_per_sec);
+
+	if (abs(speed_in_steps_per_sec) > STEPPER_SPEED_TOLERANCE){
+		motor -> ticks_max = STEPPER_TIMER_FREQ / (2*abs(motor -> v_cur)); // dive by 2 !
+		motor -> step2sec = 1.0/abs(speed_in_steps_per_sec);
+	}else{
+		motor -> ticks_max = STEPPER_TIMER_FREQ / (2*STEPPER_SPEED_TOLERANCE); // dive by 2 !
+		motor -> step2sec = 1.0/STEPPER_SPEED_TOLERANCE;
+	}
 }
 
 void steppersSetPosition(StepperState* motor, int32_t position){
@@ -77,10 +99,20 @@ void steppersSetPosition(StepperState* motor, int32_t position){
 
 void steppersPositionControl(StepperState* motor, int32_t position){
 	steppersSetPosition(motor, position);
+
+	//ensure velocity sign is right
+	if (((motor -> steps) - (motor -> goal)) < 0){
+		steppersSetSpeed(motor, abs( (motor -> v_goal) ));
+
+	}else{
+		steppersSetSpeed(motor, -abs( (motor -> v_goal) ));
+	}
+
 	motor -> status = POSITION_CONTROL;
 }
 
-void steppersSpeedControl(StepperState* motor, int16_t speed_in_steps_per_sec){
+void steppersSpeedControl(StepperState* motor, float speed_in_steps_per_sec){
+	steppersSetSpeed(motor, speed_in_steps_per_sec);
 	motor -> status = VELOCITY_CONTROL;
 }
 
@@ -88,7 +120,7 @@ void steppersSetIdle(StepperState* motor){
 	motor -> status = IDLE;
 }
 
-int8_t sign(int32_t x){
+int8_t sign(float x){
 	if (x > 0){
 		return 1;
 	}else{
@@ -107,10 +139,28 @@ void updateKinematicsParams(StepperState* motor){
 		float err = (motor -> v_cur) - (motor -> v_goal);
 
 		if ( abs(err) > STEPPER_SPEED_TOLERANCE ){
-			motor -> v_cur += -sign(err)*(motor -> a_max)*(motor -> step2sec);
+			float dVel;
+			if (err > 0) {
+				dVel = -((motor -> a_max)*(motor -> step2sec));
+			}else{
+				dVel =   (motor -> a_max)*(motor -> step2sec);
+			}
+//			dVel = -sign(err)*(motor -> a_max)*(motor -> step2sec);
 
-			motor -> ticks_max = STEPPER_TIMER_FREQ / (2*(motor -> v_cur)); // dive by 2 !
-			motor -> step2sec = 1.0/(motor -> v_cur);
+			if (abs(dVel) > abs(err)){
+				dVel = err;
+			}
+
+//				printf(" .... dVel : %f \r\n", dVel);
+
+			motor -> v_cur += dVel;
+//			motor -> v_cur +=  -sign(err);
+
+			steppersUpdateSpeed(motor, motor -> v_cur);
+		}
+
+		if ( ( abs(motor -> v_cur) < (STEPPER_SPEED_TOLERANCE + 1) ) && ( abs(motor -> v_goal) < (STEPPER_SPEED_TOLERANCE + 1) ) ){
+			motor -> status = HOLD;
 		}
 	}
 
@@ -119,18 +169,20 @@ void updateKinematicsParams(StepperState* motor){
 
 		if (abs(err) < STEPPER_POSITION_TOLERANCE){
 			steppersSetSpeed(motor, 0.0);
+			steppersUpdateSpeed(motor, 0.0);
 			motor -> status = HOLD;
 		}else{
 			// S = (v_0^2 + v^2)/(2*a)
 			float limit = 0.5 * pow((motor -> v_cur), 2) / ( motor -> a_max );
 			if (abs(err) < limit){
 				//deceleration
-				motor -> a_cur = sign(err)*(motor -> a_max);
+//				motor -> a_cur = sign(err)*(motor -> a_max);
 				// motor -> v_cur += (motor -> a_cur)*(motor -> step2sec);
-				motor -> v_cur = (motor -> v_goal)*(abs(err)/limit);
+//				motor -> v_cur = (motor -> v_goal)*(abs(err)/limit);
 
-				motor -> ticks_max = STEPPER_TIMER_FREQ / (2*(motor -> v_cur)); // dive by 2 !
-				motor -> step2sec = 1.0/(motor -> v_cur);
+				motor -> v_cur += sign(err)*(motor -> a_max)*(motor -> step2sec);
+
+				steppersUpdateSpeed(motor, motor -> v_cur);
 			}else{
 				// acceleration
 				float err = (motor -> v_cur) - (motor -> v_goal);
@@ -138,15 +190,14 @@ void updateKinematicsParams(StepperState* motor){
 				if ( abs(err) > STEPPER_SPEED_TOLERANCE ){
 					motor -> v_cur += -sign(err)*(motor -> a_max)*(motor -> step2sec);
 
-					motor -> ticks_max = STEPPER_TIMER_FREQ / (2*(motor -> v_cur)); // dive by 2 !
-					motor -> step2sec = 1.0/(motor -> v_cur);
+					steppersUpdateSpeed(motor, motor -> v_cur);
 				}
 			}
 		}
 	}
 }
 
-void steppersTimerOverflowISR(TIM_HandleTypeDef* htim){
+void steppersSignalTimerOverflowISR(TIM_HandleTypeDef* htim){
 	uint8_t i = 0;
 
 	if(htim -> Instance == STEPPER_TIMER){
@@ -172,5 +223,5 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){
 	// LED blinks
 	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 
-	steppersTimerOverflowISR(htim);
+	steppersSignalTimerOverflowISR(htim);
 }

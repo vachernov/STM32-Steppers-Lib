@@ -67,7 +67,8 @@ StepperState stepperInit(GpioPin STEP_Pin, GpioPin DIR_Pin, GpioPin EN_Pin);
 
 void doStep(StepperState* motor);
 void releaseStep(StepperState* motor);
-void setVel(StepperState* motor, float velocity);
+void setGoalVel(StepperState* motor, float velocity);
+void setCurVel(StepperState* motor, float velocity);
 void setAcc(StepperState* motor, float acceleration);
 void updateStep2Sec(StepperState* motor);
 

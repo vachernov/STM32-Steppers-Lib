@@ -128,7 +128,7 @@ int main(void)
 
   HAL_Delay(250);
 
-  steppersInitTimer(&htim2);
+  steppersInitSignalTimer(&htim2);
 
   HAL_Delay(250);
 

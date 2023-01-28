@@ -78,8 +78,14 @@ StepperState stepperInit(GpioPin STEP_Pin, GpioPin DIR_Pin, GpioPin EN_Pin){
 void doStep(StepperState* motor){
 //	HAL_GPIO_WritePin( (motor -> step_pin).port, (motor -> step_pin).pin, GPIO_PIN_SET);
 	HAL_GPIO_TogglePin( (motor -> step_pin).port, (motor -> step_pin).pin);
-    motor -> steps += motor -> dir;
-    motor -> angle += (motor -> dir)*(motor -> resolution);
+
+	if ((motor -> dir) == (motor -> dir_positive)){
+		motor -> steps += 1;
+		motor -> angle += (motor -> resolution);
+	}else{
+		motor -> steps -= 1;
+		motor -> angle -= (motor -> resolution);
+	}
 }
 void releaseStep(StepperState* motor){
 	HAL_GPIO_WritePin( (motor -> step_pin).port, (motor -> step_pin).pin, GPIO_PIN_RESET);
@@ -90,28 +96,42 @@ void setDir(StepperState* motor, int8_t d){
     HAL_GPIO_WritePin((motor -> dir_pin).port, (motor -> dir_pin).pin, d == 1 ? (motor -> dir_positive) : (motor -> dir_inverse) );
 }
 
-void setVel(StepperState* motor, float velocity){
+void setGoalVel(StepperState* motor, float velocity){
 	if ( abs(velocity) < (motor -> v_max) ){
-		motor -> v_goal = abs(velocity);
+		motor -> v_goal = velocity;
 	}else{
-		motor -> v_goal = motor -> v_max;
+		if (velocity > 0){
+			motor -> v_goal = motor -> v_max;
+		}else{
+			motor -> v_goal = -(motor -> v_max);
+		}
+	}
+}
+
+void setCurVel(StepperState* motor, float velocity){
+	if ( abs(velocity) < (motor -> v_max) ){
+		motor -> v_cur = velocity;
+	}else{
+		if (velocity > 0){
+			motor -> v_cur = motor -> v_max;
+		}else{
+			motor -> v_goal = -(motor -> v_max);
+		}
 	}
 
 	setDir( motor, (velocity > 0) ? (motor -> dir_positive) : (motor -> dir_inverse) );
 
-	if ((motor -> dir) == 0){
+	if ( ( abs(velocity) < (STEPPER_SPEED_TOLERANCE + 1) ) && ( abs(motor -> v_goal) < (STEPPER_SPEED_TOLERANCE + 1) ) ){
 		motor -> status = HOLD;
 	}
 }
 
 void setAcc(StepperState* motor, float acceleration){
 	if ( abs(acceleration) < (motor -> a_max) ){
-		motor -> a_cur = acceleration;
+		motor -> a_cur = abs(acceleration);
 	}else{
 		motor -> a_cur = motor -> a_max;
 	}
-
-	setDir( motor, (acceleration > 0) ? (motor -> dir_positive) : (motor -> dir_inverse) );
 }
 
 void updateStep2Sec(StepperState* motor){
