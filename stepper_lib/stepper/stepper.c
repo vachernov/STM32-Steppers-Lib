@@ -185,7 +185,16 @@ void saveMaxLimit(StepperState* motor){
 
 void setGoal(StepperState* motor, int32_t position){ // steps
 	setDir(motor, (position > (motor -> steps)) ? 1 : -1);
-    motor -> goal = position;
+
+	if (position > (motor -> limit_max)){
+		motor -> goal = motor -> limit_max;
+	}else{
+		if (position < (motor -> limit_min)){
+			motor -> goal = motor -> limit_min;
+		}else{
+			motor -> goal = position;
+		}
+	}
 }
 
 void setGoalRel(StepperState* motor, int32_t delta){
@@ -195,5 +204,7 @@ void setGoalRel(StepperState* motor, int32_t delta){
 
 int32_t getGoalErr(StepperState* motor){
     return ( (motor -> goal) - (motor -> steps) );
+
+    printf("......[getGoalErr]  goal : %d | err : %d \r\n", (motor -> goal), (motor -> steps));
 }
 

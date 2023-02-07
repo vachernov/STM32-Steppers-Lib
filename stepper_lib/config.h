@@ -14,12 +14,12 @@
 
 #define STEPPER_DEFAULT_RES  1.8
 #define STEPPER_DEFAULT_V_M  5000    // steps/sec
-#define STEPPER_DEFAULT_A_M   150    // steps/sec^2
+#define STEPPER_DEFAULT_A_M   20    // steps/sec^2
 
 #define STEPPER_DEFAULT_LIM_MIN -10000
 #define STEPPER_DEFAULT_LIM_MAX  10000
 
-#define STEPPER_UNITS 1
+#define STEPPER_UNITS 3
 
 // Stepper Timer Base Options
 #define STEPPER_TIMER      TIM2

@@ -213,6 +213,8 @@ void steppersSignalTimerOverflowISR(TIM_HandleTypeDef* htim){
 					updateKinematicsParams(stepper_i);
 				}else{
 					stepper_i -> ticks++;
+
+					HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 				}
 			}
 		}
@@ -221,7 +223,7 @@ void steppersSignalTimerOverflowISR(TIM_HandleTypeDef* htim){
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim){
 	// LED blinks
-	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+//	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 
 	steppersSignalTimerOverflowISR(htim);
 }
